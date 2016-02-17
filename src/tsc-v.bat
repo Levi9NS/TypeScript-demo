@@ -1,0 +1,1 @@
+node d:\work\tsc\TypeScript-release-1.8\built\local\tsc -w

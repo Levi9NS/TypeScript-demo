@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "module": "system",
+        "noImplicitAny": true,
+        "removeComments": true,
+        "preserveConstEnums": true,
+        "outFile": "dist/canvas-dialog-bundle.js",
+        "sourceMap": true
+    }, 
+    "exclude": [
+        "libs",
+        "tests"
+    ]
+}
