@@ -38,8 +38,11 @@ module CanvasDiagram {
         
         public addElement = (elem: ElementBase) : ElementBase => {
             if (!elem) throw "Element is not provided";
+            
+            this._maxZ++;
             elem.setCanvas(this);
             this._elements.push(elem);
+            elem.zIndex = this._maxZ;
             return elem;
         }
         

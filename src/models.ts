@@ -16,6 +16,8 @@ module CanvasDiagram {
         
         public right(): number { return this.x + this.w; }
         public bottom(): number { return this.y + this.h; }
+        public middleX(): number { return this.x + (this.w / 2); }
+        public middleY(): number { return this.y + (this.h / 2); }
         
         public containsPointCoords(x: number, y: number) : boolean {
             return this.x <= x && this.right() >= x

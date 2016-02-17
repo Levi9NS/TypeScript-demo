@@ -11,8 +11,10 @@ var CanvasDiagram;
             this.addElement = function (elem) {
                 if (!elem)
                     throw "Element is not provided";
+                _this._maxZ++;
                 elem.setCanvas(_this);
                 _this._elements.push(elem);
+                elem.zIndex = _this._maxZ;
                 return elem;
             };
             this.render = function () {
@@ -147,6 +149,7 @@ var CanvasDiagram;
             this.renderRect = true;
             this.isHover = false;
             this.zIndex = 0;
+            this.hasConnections = true;
             this._eventSubscribers = new Array();
             this.raiseRectChanged = function () {
                 var event = new Event('rectChange');
@@ -202,8 +205,26 @@ var CanvasDiagram;
             if (this.text) {
                 var style = CanvasDiagram.ElementBase.defaultTextStyle();
                 var renderingPoint = new CanvasDiagram.Point(this.rect.x + 5, this.rect.y + style.fontSizePt * 1.2);
-                CanvasDiagram.TextRenderer.render(this.guid.substr(0, 12), renCtx.ctx2d, this.rect, style);
+                CanvasDiagram.TextRenderer.render(this.text, renCtx.ctx2d, this.rect, style);
             }
+            if (this.hasConnections) {
+                this.renderConnectionPoint(renCtx);
+            }
+        };
+        ElementBase.prototype.renderConnectionPoint = function (renCtx) {
+            var x = this.rect.middleX();
+            var radius = 4;
+            renCtx.ctx2d.beginPath();
+            renCtx.ctx2d.fillStyle = this.isHover ? this.hoverBackground : this.background;
+            renCtx.ctx2d.arc(x, this.rect.bottom(), radius, 0, 2 * Math.PI);
+            renCtx.ctx2d.fill();
+            renCtx.ctx2d.lineWidth = 1;
+            renCtx.ctx2d.strokeStyle = 'black';
+            renCtx.ctx2d.stroke();
+            renCtx.ctx2d.beginPath();
+            renCtx.ctx2d.arc(x, this.rect.y, radius, 0, 2 * Math.PI);
+            renCtx.ctx2d.fill();
+            renCtx.ctx2d.stroke();
         };
         ElementBase.defaultTextStyle = function () {
             var style = CanvasDiagram.TextStyle.wrapStyle();
@@ -309,6 +330,8 @@ var CanvasDiagram;
         }
         Rect.prototype.right = function () { return this.x + this.w; };
         Rect.prototype.bottom = function () { return this.y + this.h; };
+        Rect.prototype.middleX = function () { return this.x + (this.w / 2); };
+        Rect.prototype.middleY = function () { return this.y + (this.h / 2); };
         Rect.prototype.containsPointCoords = function (x, y) {
             return this.x <= x && this.right() >= x
                 && this.y <= y && this.bottom() >= y;

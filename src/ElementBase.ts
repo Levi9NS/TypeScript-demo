@@ -20,6 +20,7 @@ module CanvasDiagram {
         public renderRect: boolean = true;
         public isHover: boolean = false;  
         public zIndex: number = 0;
+        public hasConnections: boolean = true;
         
         private _canvas: HTMLCanvasElement;
         private _eventSubscribers = new Array<IEventSubscirberItem>();
@@ -90,11 +91,29 @@ module CanvasDiagram {
             if (this.text) {
                 var style = CanvasDiagram.ElementBase.defaultTextStyle();
                 var renderingPoint = new CanvasDiagram.Point(this.rect.x + 5, this.rect.y + style.fontSizePt * 1.2);
-                // CanvasDiagram.TextRenderer.render(this.text, renCtx.ctx2d, this.rect, style);
-                CanvasDiagram.TextRenderer.render(this.guid.substr(0, 12), renCtx.ctx2d, this.rect, style);
+                CanvasDiagram.TextRenderer.render(this.text, renCtx.ctx2d, this.rect, style);
+            }
+            if (this.hasConnections) {
+                this.renderConnectionPoint(renCtx);
             }
         }
         
-        
+        private renderConnectionPoint(renCtx: RenderingContext) {
+            var x = this.rect.middleX();
+            var radius = 4; 
+            
+            renCtx.ctx2d.beginPath();
+            renCtx.ctx2d.fillStyle = this.isHover ? this.hoverBackground : this.background;
+            renCtx.ctx2d.arc(x, this.rect.bottom(), radius, 0, 2 * Math.PI);
+            renCtx.ctx2d.fill();
+            renCtx.ctx2d.lineWidth = 1;
+            renCtx.ctx2d.strokeStyle = 'black';
+            renCtx.ctx2d.stroke();
+            
+            renCtx.ctx2d.beginPath();
+            renCtx.ctx2d.arc(x, this.rect.y, radius, 0, 2 * Math.PI);
+            renCtx.ctx2d.fill();
+            renCtx.ctx2d.stroke();
+        }
     }
 }
