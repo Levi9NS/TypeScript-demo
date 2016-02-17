@@ -247,11 +247,20 @@ var CanvasDiagram;
 var CanvasDiagram;
 (function (CanvasDiagram) {
     var ElementsConnection = (function () {
-        function ElementsConnection(elementA, elementB) {
-            this.elementA = elementA;
-            this.elementB = elementB;
+        function ElementsConnection(endElement, startElement) {
+            this.endElement = endElement;
+            this.startElement = startElement;
         }
         ElementsConnection.prototype.render = function (renCtx) {
+            var end = new CanvasDiagram.Point(this.endElement.rect.middleX(), this.endElement.rect.bottom());
+            var start = new CanvasDiagram.Point(this.startElement.rect.middleX(), this.startElement.rect.y);
+            var halfY = (end.y + start.y) / 2;
+            renCtx.ctx2d.beginPath();
+            renCtx.ctx2d.moveTo(end.x, end.y);
+            renCtx.ctx2d.lineTo(end.x, halfY);
+            renCtx.ctx2d.lineTo(start.x, halfY);
+            renCtx.ctx2d.lineTo(start.x, start.y);
+            renCtx.ctx2d.stroke();
         };
         return ElementsConnection;
     }());
