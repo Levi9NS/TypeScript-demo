@@ -20,7 +20,7 @@ module CanvasDiagram {
         public renderRect: boolean = true;
         public isHover: boolean = false;  
         public zIndex: number = 0;
-        public hasConnections: boolean = true;
+        public hasConnectionPoints: boolean = true;
         
         private _canvas: HTMLCanvasElement;
         private _eventSubscribers = new Array<IEventSubscirberItem>();
@@ -93,7 +93,7 @@ module CanvasDiagram {
                 var renderingPoint = new CanvasDiagram.Point(this.rect.x + 5, this.rect.y + style.fontSizePt * 1.2);
                 CanvasDiagram.TextRenderer.render(this.text, renCtx.ctx2d, this.rect, style);
             }
-            if (this.hasConnections) {
+            if (this.hasConnectionPoints) {
                 this.renderConnectionPoint(renCtx);
             }
         }

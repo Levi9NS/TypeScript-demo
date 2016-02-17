@@ -12,8 +12,7 @@ module CanvasDiagram {
                 // }
                 if (ctx.isHitVisible(elem)) {
                     this.isMouseDown = true;
-                    this.mousePoint.x = e.clientX;
-                    this.mousePoint.y = e.clientY;
+                    this.mousePoint = e.actualPoint();
                 }
             });
             ctx.canvas.addEventListener('mouseup', (e) => {
@@ -21,12 +20,13 @@ module CanvasDiagram {
             });
             ctx.canvas.addEventListener('mousemove', (e) => {
                 if (this.isMouseDown) {
-                    var offsetX = e.clientX - this.mousePoint.x;
-                    var offsetY = e.clientY - this.mousePoint.y;
+                    var point = e.actualPoint();
+                    var offsetX = point.x - this.mousePoint.x;
+                    var offsetY = point.y - this.mousePoint.y;
                     elem.rect.x += offsetX;
                     elem.rect.y += offsetY;
-                    this.mousePoint.x = e.clientX;
-                    this.mousePoint.y = e.clientY;
+                    this.mousePoint.x = point.x;
+                    this.mousePoint.y = point.y;
                 }
             });
         }

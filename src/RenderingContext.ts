@@ -1,6 +1,7 @@
 module CanvasDiagram {
     export class RenderingContext {
         private _elements = new Array<ElementBase>();
+        private _connections = new Array<ElementsConnection>();
         private _maxZ: number = 0;
 
         public ctx2d : CanvasRenderingContext2D;
@@ -10,13 +11,15 @@ module CanvasDiagram {
         constructor (public canvas: HTMLCanvasElement) {
             this.ctx2d = canvas.getContext("2d");
             canvas.addEventListener('mousemove', (e: MouseEvent) => {
-                this.mousePoint.x = e.clientX;
-                this.mousePoint.y = e.clientY;
+                // this.mousePoint.x = e.clientX;
+                // this.mousePoint.y = e.clientY;
+                this.mousePoint = e.actualPoint();
             });
             canvas.addEventListener('mousedown', (e: MouseEvent) => {
                 var hitElements = Array<ElementBase>();
                 this._elements.forEach(element => {
-                    if (element.rect.containsPointCoords(e.clientX, e.clientY)) {
+                    var point = e.actualPoint();
+                    if (element.rect.containsPointCoords(point.x, point.y)) {
                         hitElements.push(element);
                     }
                 });
@@ -25,6 +28,8 @@ module CanvasDiagram {
                     this.setElementZToTop(hitElements[0]);
                 }
             });
+            
+            
         }
         
         private setElementZToTop(element: ElementBase) {
@@ -44,6 +49,11 @@ module CanvasDiagram {
             this._elements.push(elem);
             elem.zIndex = this._maxZ;
             return elem;
+        }
+        
+        public addConnection(elementA: ElementBase, elementB: ElementBase): void {
+            var connection = new ElementsConnection(elementA, elementB);
+            this._connections.push(connection)
         }
         
         public run(fps: number = 24) : void {
@@ -77,6 +87,10 @@ module CanvasDiagram {
             this.ctx2d.fillRect(0, 0, this.canvas.width, this.canvas.height);
             
             this._elements.forEach(e => {
+                e.render(this);
+            });
+            
+            this._connections.forEach(e => {
                 e.render(this);
             });
         };

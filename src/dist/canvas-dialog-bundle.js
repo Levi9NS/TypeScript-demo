@@ -5,6 +5,7 @@ var CanvasDiagram;
             var _this = this;
             this.canvas = canvas;
             this._elements = new Array();
+            this._connections = new Array();
             this._maxZ = 0;
             this.background = "#E6E6E6";
             this.mousePoint = new CanvasDiagram.Point();
@@ -24,16 +25,19 @@ var CanvasDiagram;
                 _this._elements.forEach(function (e) {
                     e.render(_this);
                 });
+                _this._connections.forEach(function (e) {
+                    e.render(_this);
+                });
             };
             this.ctx2d = canvas.getContext("2d");
             canvas.addEventListener('mousemove', function (e) {
-                _this.mousePoint.x = e.clientX;
-                _this.mousePoint.y = e.clientY;
+                _this.mousePoint = e.actualPoint();
             });
             canvas.addEventListener('mousedown', function (e) {
                 var hitElements = Array();
                 _this._elements.forEach(function (element) {
-                    if (element.rect.containsPointCoords(e.clientX, e.clientY)) {
+                    var point = e.actualPoint();
+                    if (element.rect.containsPointCoords(point.x, point.y)) {
                         hitElements.push(element);
                     }
                 });
@@ -50,6 +54,10 @@ var CanvasDiagram;
             this._elements.forEach(function (e) {
                 e.isHover = e == element;
             });
+        };
+        RenderingContext.prototype.addConnection = function (elementA, elementB) {
+            var connection = new CanvasDiagram.ElementsConnection(elementA, elementB);
+            this._connections.push(connection);
         };
         RenderingContext.prototype.run = function (fps) {
             var _this = this;
@@ -149,7 +157,7 @@ var CanvasDiagram;
             this.renderRect = true;
             this.isHover = false;
             this.zIndex = 0;
-            this.hasConnections = true;
+            this.hasConnectionPoints = true;
             this._eventSubscribers = new Array();
             this.raiseRectChanged = function () {
                 var event = new Event('rectChange');
@@ -207,7 +215,7 @@ var CanvasDiagram;
                 var renderingPoint = new CanvasDiagram.Point(this.rect.x + 5, this.rect.y + style.fontSizePt * 1.2);
                 CanvasDiagram.TextRenderer.render(this.text, renCtx.ctx2d, this.rect, style);
             }
-            if (this.hasConnections) {
+            if (this.hasConnectionPoints) {
                 this.renderConnectionPoint(renCtx);
             }
         };
@@ -238,6 +246,19 @@ var CanvasDiagram;
 })(CanvasDiagram || (CanvasDiagram = {}));
 var CanvasDiagram;
 (function (CanvasDiagram) {
+    var ElementsConnection = (function () {
+        function ElementsConnection(elementA, elementB) {
+            this.elementA = elementA;
+            this.elementB = elementB;
+        }
+        ElementsConnection.prototype.render = function (renCtx) {
+        };
+        return ElementsConnection;
+    }());
+    CanvasDiagram.ElementsConnection = ElementsConnection;
+})(CanvasDiagram || (CanvasDiagram = {}));
+var CanvasDiagram;
+(function (CanvasDiagram) {
     var MovableBehaviour = (function () {
         function MovableBehaviour(ctx, elem) {
             var _this = this;
@@ -248,8 +269,7 @@ var CanvasDiagram;
             ctx.canvas.addEventListener('mousedown', function (e) {
                 if (ctx.isHitVisible(elem)) {
                     _this.isMouseDown = true;
-                    _this.mousePoint.x = e.clientX;
-                    _this.mousePoint.y = e.clientY;
+                    _this.mousePoint = e.actualPoint();
                 }
             });
             ctx.canvas.addEventListener('mouseup', function (e) {
@@ -257,12 +277,13 @@ var CanvasDiagram;
             });
             ctx.canvas.addEventListener('mousemove', function (e) {
                 if (_this.isMouseDown) {
-                    var offsetX = e.clientX - _this.mousePoint.x;
-                    var offsetY = e.clientY - _this.mousePoint.y;
+                    var point = e.actualPoint();
+                    var offsetX = point.x - _this.mousePoint.x;
+                    var offsetY = point.y - _this.mousePoint.y;
                     elem.rect.x += offsetX;
                     elem.rect.y += offsetY;
-                    _this.mousePoint.x = e.clientX;
-                    _this.mousePoint.y = e.clientY;
+                    _this.mousePoint.x = point.x;
+                    _this.mousePoint.y = point.y;
                 }
             });
         }
@@ -417,4 +438,9 @@ var CanvasDiagram;
     }());
     CanvasDiagram.TextRenderer = TextRenderer;
 })(CanvasDiagram || (CanvasDiagram = {}));
+MouseEvent.prototype.actualPoint = function () {
+    var x = this.pageX - this.target.offsetLeft;
+    var y = this.pageY - this.target.offsetTop;
+    return new CanvasDiagram.Point(x, y);
+};
 //# sourceMappingURL=canvas-dialog-bundle.js.map
