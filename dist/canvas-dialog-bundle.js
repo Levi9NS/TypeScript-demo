@@ -23,7 +23,7 @@ var CanvasDiagram;
                 if (_this._isMouseDown) {
                     _this._isMouseDown = false;
                     _this.elem.isConnectionInProgress = false;
-                    var target = _this.ctx.getTargetElementUnderMousePoint(!_this._isStartOnStartPoint);
+                    var target = _this.ctx.getHitElementConnectionPoint(!_this._isStartOnStartPoint);
                     if (target) {
                         var endElement = _this.elem;
                         var startElement = target;
@@ -88,9 +88,22 @@ var CanvasDiagram;
                 if (hitElements.length > 0) {
                     hitElements = hitElements.sort(function (x, y) { return x.zIndex > y.zIndex ? -1 : 1; });
                     _this.setElementZToTop(hitElements[0]);
+                    _this.addElementToSelection(hitElements[0], !e.shiftKey);
+                }
+                else {
+                    _this.addElementToSelection(null, true);
                 }
             });
+            this._selectBehaviour = new CanvasDiagram.SelectBehaviour(this);
         }
+        RenderingContext.prototype.addElementToSelection = function (elem, removeOtherSelections) {
+            if (removeOtherSelections) {
+                this._elements.forEach(function (x) { return x.isSelected = false; });
+            }
+            if (elem) {
+                elem.isSelected = true;
+            }
+        };
         RenderingContext.prototype.setElementZToTop = function (element) {
             this._maxZ++;
             element.zIndex = this._maxZ;
@@ -151,8 +164,12 @@ var CanvasDiagram;
             this._connections.forEach(function (e) {
                 e.render(_this);
             });
+            this._selectBehaviour.render();
         };
         ;
+        RenderingContext.prototype.isAnyElementBeingMoved = function () {
+            return this._elements.filter(function (x) { return x.isBeingMoved(); }).length > 0;
+        };
         RenderingContext.prototype.isHitVisible = function (element, extendByPixels) {
             var _this = this;
             if (extendByPixels === void 0) { extendByPixels = 0; }
@@ -166,6 +183,9 @@ var CanvasDiagram;
             }
             elementsWithHit = elementsWithHit.sort(function (x) { return x.zIndex; });
             return element.zIndex >= elementsWithHit[0].zIndex;
+        };
+        RenderingContext.prototype.getSelectedElements = function () {
+            return this._elements.filter(function (x) { return x.isSelected; });
         };
         RenderingContext.prototype.findFreeSpace = function () {
             var testRect = new CanvasDiagram.Rect(10, 10, 200, 100);
@@ -191,7 +211,7 @@ var CanvasDiagram;
             }
             return new CanvasDiagram.Point(15, 15);
         };
-        RenderingContext.prototype.getTargetElementUnderMousePoint = function (targetIsStart) {
+        RenderingContext.prototype.getHitElementConnectionPoint = function (targetIsStart) {
             var _this = this;
             var element = this._elements.filter(function (x) { return _this.isHitVisible(x, 4); });
             if (element.length > 0) {
@@ -203,6 +223,15 @@ var CanvasDiagram;
                 }
             }
             return null;
+        };
+        RenderingContext.prototype.getHitElement = function () {
+            var _this = this;
+            var element = this._elements.filter(function (x) { return _this.isHitVisible(x, 4); });
+            if (element.length > 0)
+                return element[0];
+        };
+        RenderingContext.prototype.getAllElements = function () {
+            return this._elements.filter(function (x) { return true; });
         };
         return RenderingContext;
     }());
@@ -271,6 +300,7 @@ var CanvasDiagram;
             this.foreground = 'black';
             this.text = 'this is the single one long sample text';
             this.borderWidth = 1;
+            this.borderWidthSelected = 3;
             this.renderRect = true;
             this.isHover = false;
             this.isHoverConnectStart = false;
@@ -278,6 +308,7 @@ var CanvasDiagram;
             this.zIndex = 0;
             this.hasConnectionPoints = true;
             this.isConnectionInProgress = false;
+            this.isSelected = false;
             this._eventSubscribers = new Array();
             this._connectRadius = 5;
             this.raiseRectChanged = function () {
@@ -317,15 +348,6 @@ var CanvasDiagram;
                 this._eventSubscribers.splice(index, 1);
             }
         };
-        ElementBase.prototype.raiseEvent = function (name, data) {
-            var _this = this;
-            var handlers = this._eventSubscribers.filter(function (x) { return x.eventName == name; });
-            handlers.forEach(function (handler) {
-                if (handler.handler(_this, data)) {
-                    return;
-                }
-            });
-        };
         ElementBase.prototype.render = function (renCtx) {
             renCtx.ctx2d.setLineDash([]);
             if (this.renderRect) {
@@ -336,7 +358,12 @@ var CanvasDiagram;
                 else
                     renCtx.ctx2d.fillStyle = this.background;
                 renCtx.ctx2d.fill();
-                renCtx.ctx2d.lineWidth = this.borderWidth;
+                if (this.isSelected) {
+                    renCtx.ctx2d.lineWidth = this.borderWidthSelected;
+                }
+                else {
+                    renCtx.ctx2d.lineWidth = this.borderWidth;
+                }
                 renCtx.ctx2d.strokeStyle = this.foreground;
                 renCtx.ctx2d.stroke();
             }
@@ -350,6 +377,7 @@ var CanvasDiagram;
             }
         };
         ElementBase.prototype.isConnectionHover = function () { return this.isHoverConnectEnd || this.isHoverConnectStart; };
+        ElementBase.prototype.isBeingMoved = function () { return this._movableBehaviour.isBeingMoved(); };
         ElementBase.prototype.renderConnectionPoint = function (renCtx) {
             var x = this.rect.middleX();
             renCtx.ctx2d.beginPath();
@@ -408,6 +436,7 @@ var CanvasDiagram;
             var end = new CanvasDiagram.Point(this.endElement.rect.middleX(), this.endElement.rect.bottom());
             var start = new CanvasDiagram.Point(this.startElement.rect.middleX(), this.startElement.rect.y);
             var halfY = (end.y + start.y) / 2;
+            renCtx.ctx2d.lineWidth = 1;
             renCtx.ctx2d.beginPath();
             renCtx.ctx2d.setLineDash([]);
             renCtx.ctx2d.moveTo(end.x, end.y);
@@ -443,16 +472,69 @@ var CanvasDiagram;
                     var point = e.actualPoint();
                     var offsetX = point.x - _this.mousePoint.x;
                     var offsetY = point.y - _this.mousePoint.y;
-                    elem.rect.x += offsetX;
-                    elem.rect.y += offsetY;
+                    ctx.getSelectedElements().forEach(function (e) {
+                        e.rect.x += offsetX;
+                        e.rect.y += offsetY;
+                    });
                     _this.mousePoint.x = point.x;
                     _this.mousePoint.y = point.y;
                 }
             });
         }
+        MovableBehaviour.prototype.isBeingMoved = function () { return this.isMouseDown; };
         return MovableBehaviour;
     }());
     CanvasDiagram.MovableBehaviour = MovableBehaviour;
+})(CanvasDiagram || (CanvasDiagram = {}));
+var CanvasDiagram;
+(function (CanvasDiagram) {
+    var SelectBehaviour = (function () {
+        function SelectBehaviour(ctx) {
+            this.ctx = ctx;
+            this._isMouseDown = false;
+            this.addEventListeners();
+        }
+        SelectBehaviour.prototype.getSelectionRect = function () {
+            var secondPoint = this.ctx.mousePoint;
+            var firstPoint = this._mousePoint;
+            var x = secondPoint.x < firstPoint.x ? secondPoint.x : firstPoint.x;
+            var y = secondPoint.y < firstPoint.y ? secondPoint.y : firstPoint.y;
+            var w = Math.abs(secondPoint.x - firstPoint.x);
+            var h = Math.abs(secondPoint.y - firstPoint.y);
+            return new CanvasDiagram.Rect(x, y, w, h);
+        };
+        SelectBehaviour.prototype.addEventListeners = function () {
+            var _this = this;
+            this.ctx.canvas.addEventListener('mousedown', function (e) {
+                if (!_this.ctx.getHitElementConnectionPoint()) {
+                    _this._isMouseDown = true;
+                    _this._mousePoint = new CanvasDiagram.Point(_this.ctx.mousePoint.x, _this.ctx.mousePoint.y);
+                }
+            });
+            this.ctx.canvas.addEventListener('mouseup', function (e) {
+                var rect = _this.getSelectionRect();
+                _this._isMouseDown = false;
+                var elements = _this.ctx.getAllElements().filter(function (element) { return rect.contains(element.rect); });
+                _this.ctx.addElementToSelection(null, true);
+                elements.forEach(function (e) { return _this.ctx.addElementToSelection(e, false); });
+            });
+        };
+        SelectBehaviour.prototype.render = function () {
+            if (this._isMouseDown && !this.ctx.isAnyElementBeingMoved()) {
+                var rect = this.getSelectionRect();
+                this.ctx.ctx2d.beginPath();
+                this.ctx.ctx2d.fillStyle = "rgba(209, 255, 194, 0.5)";
+                this.ctx.ctx2d.fillRect(rect.x, rect.y, rect.w, rect.h);
+                this.ctx.ctx2d.fill();
+                this.ctx.ctx2d.strokeStyle = "black";
+                this.ctx.ctx2d.lineWidth = 1;
+                this.ctx.ctx2d.setLineDash([2]);
+                this.ctx.ctx2d.stroke();
+            }
+        };
+        return SelectBehaviour;
+    }());
+    CanvasDiagram.SelectBehaviour = SelectBehaviour;
 })(CanvasDiagram || (CanvasDiagram = {}));
 var CanvasDiagram;
 (function (CanvasDiagram) {
@@ -530,6 +612,9 @@ var CanvasDiagram;
         };
         Rect.prototype.isIntersecting = function (other) {
             return !(this.x > other.right() || this.right() < other.x || this.y > other.bottom() || this.bottom() < other.y);
+        };
+        Rect.prototype.contains = function (other) {
+            return (this.x <= other.x && this.right() >= other.right() && this.y <= other.y && this.bottom() >= other.bottom());
         };
         return Rect;
     }());

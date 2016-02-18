@@ -15,9 +15,9 @@ module CanvasDiagram {
         public render(renCtx: RenderingContext) {
             var end = new Point(this.endElement.rect.middleX(), this.endElement.rect.bottom());
             var start = new Point (this.startElement.rect.middleX(), this.startElement.rect.y);
-            // var halfX = (end.x + start.x) / 2;
-            var halfY = (end.y + start.y) / 2;
             
+            var halfY = (end.y + start.y) / 2;
+            renCtx.ctx2d.lineWidth = 1;
             renCtx.ctx2d.beginPath();
             renCtx.ctx2d.setLineDash([]);
             renCtx.ctx2d.moveTo(end.x, end.y);

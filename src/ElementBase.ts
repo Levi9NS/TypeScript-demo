@@ -18,6 +18,7 @@ module CanvasDiagram {
         public foreground: string = 'black';
         public text: string = 'this is the single one long sample text';
         public borderWidth: number = 1;
+        public borderWidthSelected: number = 3;
         public renderRect: boolean = true;
         public isHover: boolean = false;  
         public isHoverConnectStart: boolean = false;
@@ -25,6 +26,7 @@ module CanvasDiagram {
         public zIndex: number = 0;
         public hasConnectionPoints: boolean = true;
         public isConnectionInProgress: boolean = false;
+        public isSelected: boolean = false;
         
         private _canvas: HTMLCanvasElement;
         private _eventSubscribers = new Array<IEventSubscirberItem>();
@@ -74,14 +76,14 @@ module CanvasDiagram {
             }
         }
         
-        private raiseEvent(name: string, data: Object) {
-            var handlers = this._eventSubscribers.filter(x => x.eventName == name);
-            handlers.forEach(handler => {
-                if (handler.handler(this, data)) { // if handeled
-                    return;
-                }
-            });
-        }
+        // private raiseEvent(name: string, data: Object) {
+        //     var handlers = this._eventSubscribers.filter(x => x.eventName == name);
+        //     handlers.forEach(handler => {
+        //         if (handler.handler(this, data)) { // if handeled
+        //             return;
+        //         }
+        //     });
+        // }
         
         static defaultTextStyle: () => CanvasDiagram.TextStyle = function() {
             var style = CanvasDiagram.TextStyle.wrapStyle();
@@ -104,7 +106,11 @@ module CanvasDiagram {
                 if (this.isHover && !this.isConnectionHover()) renCtx.ctx2d.fillStyle = this.hoverBackground;
                 else renCtx.ctx2d.fillStyle = this.background;
                 renCtx.ctx2d.fill();
-                renCtx.ctx2d.lineWidth = this.borderWidth;
+                if (this.isSelected) {
+                    renCtx.ctx2d.lineWidth = this.borderWidthSelected;
+                } else {
+                    renCtx.ctx2d.lineWidth = this.borderWidth;
+                }
                 renCtx.ctx2d.strokeStyle = this.foreground;
                 renCtx.ctx2d.stroke();
             }
@@ -120,6 +126,8 @@ module CanvasDiagram {
         
         public isConnectionHover(): boolean { return this.isHoverConnectEnd || this.isHoverConnectStart; }
                 
+        public isBeingMoved() { return this._movableBehaviour.isBeingMoved(); }
+                        
         private renderConnectionPoint(renCtx: RenderingContext) {
             var x = this.rect.middleX();
                         

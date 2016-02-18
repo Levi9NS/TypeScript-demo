@@ -28,7 +28,7 @@ module CanvasDiagram {
                 if (this._isMouseDown) {
                     this._isMouseDown = false;
                     this.elem.isConnectionInProgress = false;
-                    var target = this.ctx.getTargetElementUnderMousePoint(!this._isStartOnStartPoint);
+                    var target = this.ctx.getHitElementConnectionPoint(!this._isStartOnStartPoint);
                     if (target) {
                         var endElement = this.elem;
                         var startElement = target;

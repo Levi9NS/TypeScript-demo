@@ -3,6 +3,7 @@ module CanvasDiagram {
         private _elements = new Array<ElementBase>();
         private _connections = new Array<ElementsConnection>();
         private _maxZ: number = 0;
+        private _selectBehaviour: SelectBehaviour;
 
         public ctx2d : CanvasRenderingContext2D;
         public background: string = "#E6E6E6";
@@ -29,8 +30,22 @@ module CanvasDiagram {
                 if (hitElements.length > 0) {
                     hitElements = hitElements.sort((x, y) => x.zIndex > y.zIndex ? -1 : 1);
                     this.setElementZToTop(hitElements[0]);
+                    this.addElementToSelection(hitElements[0], !e.shiftKey);
+                } else {
+                    this.addElementToSelection(null, true); // clear selection
                 }
             });
+            
+            this._selectBehaviour = new SelectBehaviour(this);
+        }
+        
+        public addElementToSelection(elem: ElementBase, removeOtherSelections: boolean) {
+            if (removeOtherSelections) {
+                this._elements.forEach(x => x.isSelected = false);
+            }
+            if (elem) {
+                elem.isSelected = true;
+            }
         }
         
         private setElementZToTop(element: ElementBase) {
@@ -102,7 +117,13 @@ module CanvasDiagram {
             this._connections.forEach(e => {
                 e.render(this);
             });
+            
+            this._selectBehaviour.render();
         };
+        
+        public isAnyElementBeingMoved() {
+            return this._elements.filter(x => x.isBeingMoved()).length > 0;
+        }
         
         public isHitVisible(element: ElementBase, extendByPixels: number = 0): boolean {
             var rect = element.rect.extendUniform(extendByPixels); 
@@ -117,6 +138,10 @@ module CanvasDiagram {
             
             elementsWithHit = elementsWithHit.sort(x => x.zIndex);
             return element.zIndex >= elementsWithHit[0].zIndex;
+        }
+        
+        public getSelectedElements(): Array<ElementBase> {
+            return this._elements.filter(x => x.isSelected);
         }
         
         public findFreeSpace(): Point {
@@ -146,7 +171,7 @@ module CanvasDiagram {
             return new Point(15, 15);
         }
         
-        public getTargetElementUnderMousePoint(targetIsStart: boolean): ElementBase {
+        public getHitElementConnectionPoint(targetIsStart?: boolean): ElementBase {
             var element = this._elements.filter(x => this.isHitVisible(x, 4));
             if (element.length > 0) {
                 if (targetIsStart && element[0].isHoverConnectStart) {
@@ -157,6 +182,15 @@ module CanvasDiagram {
                 }
             }
             return null;
+        }
+        
+        public getHitElement(): ElementBase {
+            var element = this._elements.filter(x => this.isHitVisible(x, 4));
+            if (element.length > 0) return element[0];
+        }
+        
+        public getAllElements() {
+            return this._elements.filter(x => true);
         }
     }
 }

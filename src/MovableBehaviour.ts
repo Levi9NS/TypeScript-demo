@@ -18,12 +18,16 @@ module CanvasDiagram {
                     var point = e.actualPoint();
                     var offsetX = point.x - this.mousePoint.x;
                     var offsetY = point.y - this.mousePoint.y;
-                    elem.rect.x += offsetX;
-                    elem.rect.y += offsetY;
+                    ctx.getSelectedElements().forEach(e => {
+                       e.rect.x += offsetX;
+                       e.rect.y += offsetY; 
+                    });
                     this.mousePoint.x = point.x;
                     this.mousePoint.y = point.y;
                 }
             });
         }
-    }
+        
+        public isBeingMoved() { return this.isMouseDown; }
+    }        
 }

@@ -37,5 +37,9 @@ module CanvasDiagram {
         public isIntersecting(other: Rect): boolean {
             return !(this.x > other.right() || this.right() < other.x || this.y > other.bottom() || this.bottom() < other.y);
         }
+        
+        public contains(other: Rect): boolean {
+            return (this.x <= other.x && this.right() >= other.right() && this.y <= other.y && this.bottom() >= other.bottom() );
+        }
     }
 }
