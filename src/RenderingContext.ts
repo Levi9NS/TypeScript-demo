@@ -28,8 +28,6 @@ module CanvasDiagram {
                     this.setElementZToTop(hitElements[0]);
                 }
             });
-            
-            
         }
         
         private setElementZToTop(element: ElementBase) {
@@ -68,14 +66,20 @@ module CanvasDiagram {
                 e.updateState();
             });
             var isHover = false;
+            var isConnectHover = false;
             for (let i = 0; i < this._elements.length; i++) {
                 if (this._elements[i].isHover) {
                     isHover = true;
+                    break;
+                } else if (this._elements[i].isConnectionHover()) {
+                    isConnectHover = true;
                     break;
                 }
             }
             if (isHover) {
                 this.canvas.style.cursor = "move";
+            } else if (isConnectHover) {
+                this.canvas.style.cursor = "pointer"; 
             } else {
                 this.canvas.style.cursor = "default";
             }
@@ -95,12 +99,13 @@ module CanvasDiagram {
             });
         };
         
-        public isHitVisible(element: ElementBase): boolean {
-            if (!element.rect.containsPoint(this.mousePoint)) {
+        public isHitVisible(element: ElementBase, extendByPixels: number = 0): boolean {
+            var rect = element.rect.extendUniform(extendByPixels); 
+            if (!rect.containsPoint(this.mousePoint)) {
                 return false;
             }
             
-            var elementsWithHit = this._elements.filter(x => x.rect.containsPoint(this.mousePoint));
+            var elementsWithHit = this._elements.filter(x => x.rect.extendUniform(extendByPixels).containsPoint(this.mousePoint));
             if (elementsWithHit.length == 1) { 
                 return true;
             }

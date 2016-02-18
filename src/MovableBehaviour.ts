@@ -5,12 +5,7 @@ module CanvasDiagram {
         
         constructor(private ctx: RenderingContext, private elem: ElementBase) {
             ctx.canvas.addEventListener('mousedown', (e) => {
-                // if (elem.rect.containsPointCoords(e.clientX, e.clientY)) {
-                //     this.isMouseDown = true;
-                //     this.mousePoint.x = e.clientX;
-                //     this.mousePoint.y = e.clientY;
-                // }
-                if (ctx.isHitVisible(elem)) {
+                if (ctx.isHitVisible(elem, 0) && !elem.isConnectionHover()) {
                     this.isMouseDown = true;
                     this.mousePoint = e.actualPoint();
                 }

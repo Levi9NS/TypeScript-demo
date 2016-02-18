@@ -27,5 +27,11 @@ module CanvasDiagram {
         public containsPoint(point: Point) : boolean {
             return this.containsPointCoords(point.x, point.y);
         }
+        
+        public extendUniform(byPx: number): Rect {
+            if (byPx == 0) return this;
+            
+            return new Rect(this.x - byPx, this.y - byPx, this.w + 2*byPx, this.h + 2*byPx);
+        }
     }
 }

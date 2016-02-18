@@ -72,26 +72,36 @@ var CanvasDiagram;
                 e.updateState();
             });
             var isHover = false;
+            var isConnectHover = false;
             for (var i = 0; i < this._elements.length; i++) {
                 if (this._elements[i].isHover) {
                     isHover = true;
+                    break;
+                }
+                else if (this._elements[i].isConnectionHover()) {
+                    isConnectHover = true;
                     break;
                 }
             }
             if (isHover) {
                 this.canvas.style.cursor = "move";
             }
+            else if (isConnectHover) {
+                this.canvas.style.cursor = "pointer";
+            }
             else {
                 this.canvas.style.cursor = "default";
             }
         };
         ;
-        RenderingContext.prototype.isHitVisible = function (element) {
+        RenderingContext.prototype.isHitVisible = function (element, extendByPixels) {
             var _this = this;
-            if (!element.rect.containsPoint(this.mousePoint)) {
+            if (extendByPixels === void 0) { extendByPixels = 0; }
+            var rect = element.rect.extendUniform(extendByPixels);
+            if (!rect.containsPoint(this.mousePoint)) {
                 return false;
             }
-            var elementsWithHit = this._elements.filter(function (x) { return x.rect.containsPoint(_this.mousePoint); });
+            var elementsWithHit = this._elements.filter(function (x) { return x.rect.extendUniform(extendByPixels).containsPoint(_this.mousePoint); });
             if (elementsWithHit.length == 1) {
                 return true;
             }
@@ -156,13 +166,17 @@ var CanvasDiagram;
             this.borderWidth = 1;
             this.renderRect = true;
             this.isHover = false;
+            this.isHoverConnectStart = false;
+            this.isHoverConnectEnd = false;
             this.zIndex = 0;
             this.hasConnectionPoints = true;
             this._eventSubscribers = new Array();
+            this._connectRadius = 5;
             this.raiseRectChanged = function () {
                 var event = new Event('rectChange');
                 dispatchEvent(event);
             };
+            this._connectDiameter = this._connectRadius * 2;
         }
         ElementBase.prototype.setCanvas = function (ctx) {
             this._canvas = ctx.canvas;
@@ -170,7 +184,17 @@ var CanvasDiagram;
             this._movableBehaviour = new CanvasDiagram.MovableBehaviour(ctx, this);
         };
         ElementBase.prototype.updateState = function () {
-            this.isHover = this._renderingCtx.isHitVisible(this);
+            this.isHover = this._renderingCtx.isHitVisible(this, 4);
+            if (this.isHover) {
+                this.updateConnectionsHover(this._renderingCtx.mousePoint);
+            }
+            else {
+                this.isHoverConnectStart = false;
+                this.isHoverConnectEnd = false;
+            }
+            if (this.isHoverConnectEnd || this.isHoverConnectEnd) {
+                this.isHover = false;
+            }
         };
         ElementBase.prototype.subscribeToEvent = function (eventName, handler) {
             var id = CanvasDiagram.Random.guid();
@@ -219,20 +243,41 @@ var CanvasDiagram;
                 this.renderConnectionPoint(renCtx);
             }
         };
+        ElementBase.prototype.isConnectionHover = function () { return this.isHoverConnectEnd || this.isHoverConnectStart; };
         ElementBase.prototype.renderConnectionPoint = function (renCtx) {
             var x = this.rect.middleX();
-            var radius = 4;
             renCtx.ctx2d.beginPath();
-            renCtx.ctx2d.fillStyle = this.isHover ? this.hoverBackground : this.background;
-            renCtx.ctx2d.arc(x, this.rect.bottom(), radius, 0, 2 * Math.PI);
+            if (this.isHoverConnectEnd) {
+                renCtx.ctx2d.fillStyle = this.hoverBackground;
+                renCtx.ctx2d.lineWidth = 2.5;
+            }
+            else {
+                renCtx.ctx2d.fillStyle = this.background;
+                renCtx.ctx2d.lineWidth = 1;
+            }
+            renCtx.ctx2d.arc(x, this.rect.bottom(), this._connectRadius, 0, 2 * Math.PI);
             renCtx.ctx2d.fill();
-            renCtx.ctx2d.lineWidth = 1;
             renCtx.ctx2d.strokeStyle = 'black';
             renCtx.ctx2d.stroke();
             renCtx.ctx2d.beginPath();
-            renCtx.ctx2d.arc(x, this.rect.y, radius, 0, 2 * Math.PI);
+            if (this.isHoverConnectStart) {
+                renCtx.ctx2d.fillStyle = this.hoverBackground;
+                renCtx.ctx2d.lineWidth = 2.5;
+            }
+            else {
+                renCtx.ctx2d.fillStyle = this.background;
+                renCtx.ctx2d.lineWidth = 1;
+            }
+            renCtx.ctx2d.arc(x, this.rect.y, this._connectRadius, 0, 2 * Math.PI);
             renCtx.ctx2d.fill();
             renCtx.ctx2d.stroke();
+        };
+        ElementBase.prototype.updateConnectionsHover = function (mousePoint) {
+            var leftX = this.rect.middleX() - this._connectRadius;
+            var startRect = new CanvasDiagram.Rect(leftX, this.rect.y - this._connectRadius, this._connectDiameter, this._connectDiameter);
+            var endRect = new CanvasDiagram.Rect(leftX, this.rect.bottom() - this._connectRadius, this._connectDiameter, this._connectDiameter);
+            this.isHoverConnectStart = startRect.containsPoint(mousePoint);
+            this.isHoverConnectEnd = endRect.containsPoint(mousePoint);
         };
         ElementBase.defaultTextStyle = function () {
             var style = CanvasDiagram.TextStyle.wrapStyle();
@@ -276,7 +321,7 @@ var CanvasDiagram;
             this.mousePoint = new CanvasDiagram.Point();
             this.isMouseDown = false;
             ctx.canvas.addEventListener('mousedown', function (e) {
-                if (ctx.isHitVisible(elem)) {
+                if (ctx.isHitVisible(elem, 0) && !elem.isConnectionHover()) {
                     _this.isMouseDown = true;
                     _this.mousePoint = e.actualPoint();
                 }
@@ -368,6 +413,11 @@ var CanvasDiagram;
         };
         Rect.prototype.containsPoint = function (point) {
             return this.containsPointCoords(point.x, point.y);
+        };
+        Rect.prototype.extendUniform = function (byPx) {
+            if (byPx == 0)
+                return this;
+            return new Rect(this.x - byPx, this.y - byPx, this.w + 2 * byPx, this.h + 2 * byPx);
         };
         return Rect;
     }());

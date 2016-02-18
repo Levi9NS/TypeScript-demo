@@ -19,6 +19,8 @@ module CanvasDiagram {
         public borderWidth: number = 1;
         public renderRect: boolean = true;
         public isHover: boolean = false;  
+        public isHoverConnectStart: boolean = false;
+        public isHoverConnectEnd: boolean = false;
         public zIndex: number = 0;
         public hasConnectionPoints: boolean = true;
         
@@ -26,6 +28,12 @@ module CanvasDiagram {
         private _eventSubscribers = new Array<IEventSubscirberItem>();
         private _renderingCtx: RenderingContext;
         private _movableBehaviour: MovableBehaviour;
+        private _connectRadius: number = 5;
+        private _connectDiameter: number;
+        
+        constructor() {
+            this._connectDiameter = this._connectRadius * 2;
+        }
         
         public setCanvas (ctx: RenderingContext): void {
             this._canvas = ctx.canvas;
@@ -34,7 +42,16 @@ module CanvasDiagram {
         }
         
         public updateState(): void {
-            this.isHover = this._renderingCtx.isHitVisible(this);
+            this.isHover = this._renderingCtx.isHitVisible(this, 4);
+            if (this.isHover) {
+                this.updateConnectionsHover(this._renderingCtx.mousePoint);
+            } else {
+                this.isHoverConnectStart = false;
+                this.isHoverConnectEnd = false;
+            }
+            if (this.isHoverConnectEnd || this.isHoverConnectEnd) {
+                this.isHover = false;
+            }
         }
         
         public subscribeToEvent(eventName: string, handler: (sender: Object, data: Object) => void): string {
@@ -98,22 +115,45 @@ module CanvasDiagram {
             }
         }
         
+        public isConnectionHover(): boolean { return this.isHoverConnectEnd || this.isHoverConnectStart; }
+                
         private renderConnectionPoint(renCtx: RenderingContext) {
             var x = this.rect.middleX();
-            var radius = 4; 
-            
+                        
             renCtx.ctx2d.beginPath();
-            renCtx.ctx2d.fillStyle = this.isHover ? this.hoverBackground : this.background;
-            renCtx.ctx2d.arc(x, this.rect.bottom(), radius, 0, 2 * Math.PI);
+            if (this.isHoverConnectEnd) {
+                renCtx.ctx2d.fillStyle = this.hoverBackground;
+                renCtx.ctx2d.lineWidth = 2.5;
+            } else {
+                renCtx.ctx2d.fillStyle = this.background;
+                renCtx.ctx2d.lineWidth = 1;
+            }
+            renCtx.ctx2d.arc(x, this.rect.bottom(), this._connectRadius, 0, 2 * Math.PI);
             renCtx.ctx2d.fill();
-            renCtx.ctx2d.lineWidth = 1;
             renCtx.ctx2d.strokeStyle = 'black';
             renCtx.ctx2d.stroke();
             
             renCtx.ctx2d.beginPath();
-            renCtx.ctx2d.arc(x, this.rect.y, radius, 0, 2 * Math.PI);
+            if (this.isHoverConnectStart) {
+                renCtx.ctx2d.fillStyle = this.hoverBackground;
+                renCtx.ctx2d.lineWidth = 2.5;
+            } else {
+                renCtx.ctx2d.fillStyle = this.background;
+                renCtx.ctx2d.lineWidth = 1;
+            }
+            renCtx.ctx2d.arc(x, this.rect.y, this._connectRadius, 0, 2 * Math.PI);
             renCtx.ctx2d.fill();
             renCtx.ctx2d.stroke();
+        }
+        
+        private updateConnectionsHover(mousePoint: Point): void {
+            // TODO: cache this for non moved elements
+            
+            var leftX = this.rect.middleX() - this._connectRadius;
+            var startRect = new Rect(leftX, this.rect.y - this._connectRadius, this._connectDiameter, this._connectDiameter);
+            var endRect = new Rect(leftX, this.rect.bottom() - this._connectRadius, this._connectDiameter, this._connectDiameter);
+            this.isHoverConnectStart = startRect.containsPoint(mousePoint);
+            this.isHoverConnectEnd = endRect.containsPoint(mousePoint);
         }
     }
 }

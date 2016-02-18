@@ -13,7 +13,7 @@ elem2.text = elem2.guid.substr(0, 4);
 renCtx.run();
 renCtx.addElement(elem);
 renCtx.addElement(elem2);
-renCtx.addConnection(elem, elem2);
+// renCtx.addConnection(elem, elem2);
 
 var elem3 = new CanvasDiagram.ElementBase();
 elem3.rect.x = 100;
@@ -21,9 +21,9 @@ elem3.rect.y = 100;
 elem3.text = elem3.guid.substr(0, 4);
 
 renCtx.addElement(elem3);
-renCtx.addConnection(elem, elem3);
+// renCtx.addConnection(elem, elem3);
 
-for (var i = 0; i < 2; i++) {
+for (var i = 0; i < 0; i++) {
     var e = new CanvasDiagram.ElementBase();
     e.text = e.guid.substr(0, 4);
     e.rect.x = 2 + 10 * i;
