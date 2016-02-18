@@ -409,6 +409,7 @@ var CanvasDiagram;
             var start = new CanvasDiagram.Point(this.startElement.rect.middleX(), this.startElement.rect.y);
             var halfY = (end.y + start.y) / 2;
             renCtx.ctx2d.beginPath();
+            renCtx.ctx2d.setLineDash([]);
             renCtx.ctx2d.moveTo(end.x, end.y);
             renCtx.ctx2d.lineTo(end.x, halfY);
             renCtx.ctx2d.lineTo(start.x, halfY);

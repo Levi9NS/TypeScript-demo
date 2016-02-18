@@ -40,10 +40,6 @@ module CanvasDiagram {
                     }
                 }
             });
-
-            // this.ctx.canvas.addEventListener('mousemove', (e: MouseEvent) => {
-            //     
-            // });
         }
 
         public render(): void {
