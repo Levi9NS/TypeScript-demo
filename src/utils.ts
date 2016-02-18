@@ -23,6 +23,14 @@ module CanvasDiagram {
         }
     }
     
+    export class LocalId {
+        private static nextId: number = 0;
+        
+        public static getNextId() {
+            return (++LocalId.nextId);
+        }
+    }
+    
     export class Logger {
         static isEnabled: boolean = true;
         static log(obj: any) {

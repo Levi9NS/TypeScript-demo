@@ -33,5 +33,9 @@ module CanvasDiagram {
             
             return new Rect(this.x - byPx, this.y - byPx, this.w + 2*byPx, this.h + 2*byPx);
         }
+        
+        public isIntersecting(other: Rect): boolean {
+            return !(this.x > other.right() || this.right() < other.x || this.y > other.bottom() || this.bottom() < other.y);
+        }
     }
 }

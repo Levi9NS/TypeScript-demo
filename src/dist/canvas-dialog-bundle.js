@@ -1,5 +1,42 @@
 var CanvasDiagram;
 (function (CanvasDiagram) {
+    var ConnectionBehaviour = (function () {
+        function ConnectionBehaviour(ctx, elem) {
+            this.ctx = ctx;
+            this.elem = elem;
+            this._isMouseDown = false;
+            this.connectionInProgressOnStart = false;
+            this.connectionInProgressOnEnd = true;
+            this.addEventListeners();
+        }
+        ConnectionBehaviour.prototype.addEventListeners = function () {
+            var _this = this;
+            this.ctx.canvas.addEventListener('mousedown', function (e) {
+                if (_this.elem.isConnectionHover()) {
+                    _this._isMouseDown = true;
+                    _this.elem.isConnectionInProgress = true;
+                    console.log('connect start');
+                }
+            });
+            this.ctx.canvas.addEventListener('mouseup', function (e) {
+                if (_this._isMouseDown) {
+                    _this._isMouseDown = false;
+                    _this.elem.isConnectionInProgress = false;
+                    console.log('connect stop');
+                }
+            });
+            this.ctx.canvas.addEventListener('mousemove', function (e) {
+                if (_this._isMouseDown) {
+                    console.log('connect move');
+                }
+            });
+        };
+        return ConnectionBehaviour;
+    }());
+    CanvasDiagram.ConnectionBehaviour = ConnectionBehaviour;
+})(CanvasDiagram || (CanvasDiagram = {}));
+var CanvasDiagram;
+(function (CanvasDiagram) {
     var RenderingContext = (function () {
         function RenderingContext(canvas) {
             var _this = this;
@@ -9,6 +46,8 @@ var CanvasDiagram;
             this._maxZ = 0;
             this.background = "#E6E6E6";
             this.mousePoint = new CanvasDiagram.Point();
+            this.connectionStartLocalId = 0;
+            this.connectionEndLocalId = 0;
             this.addElement = function (elem) {
                 if (!elem)
                     throw "Element is not provided";
@@ -74,7 +113,7 @@ var CanvasDiagram;
             var isHover = false;
             var isConnectHover = false;
             for (var i = 0; i < this._elements.length; i++) {
-                if (this._elements[i].isConnectionHover()) {
+                if (this._elements[i].isConnectionHover() || this._elements[i].isConnectionInProgress) {
                     isConnectHover = true;
                     break;
                 }
@@ -108,6 +147,30 @@ var CanvasDiagram;
             elementsWithHit = elementsWithHit.sort(function (x) { return x.zIndex; });
             return element.zIndex >= elementsWithHit[0].zIndex;
         };
+        RenderingContext.prototype.findFreeSpace = function () {
+            var testRect = new CanvasDiagram.Rect(10, 10, 200, 100);
+            for (var x = 10; x < this.canvas.width - 200; x += 10) {
+                for (var y = 10; y < this.canvas.height - 100; y += 10) {
+                    testRect.x = x;
+                    testRect.y = y;
+                    if ((this._elements.filter(function (r) { return r.rect.extendUniform(10).isIntersecting(testRect); })).length == 0) {
+                        return new CanvasDiagram.Point(x, y);
+                    }
+                }
+            }
+            testRect.w = 20;
+            testRect.h = 20;
+            for (var x = 10; x < this.canvas.width; x += 2) {
+                for (var y = 10; y < this.canvas.height; y += 2) {
+                    testRect.x = x;
+                    testRect.y = y;
+                    if ((this._elements.filter(function (r) { return r.rect.isIntersecting(testRect); })).length == 0) {
+                        return new CanvasDiagram.Point(x, y);
+                    }
+                }
+            }
+            return new CanvasDiagram.Point(15, 15);
+        };
         return RenderingContext;
     }());
     CanvasDiagram.RenderingContext = RenderingContext;
@@ -139,6 +202,16 @@ var CanvasDiagram;
         return Random;
     }());
     CanvasDiagram.Random = Random;
+    var LocalId = (function () {
+        function LocalId() {
+        }
+        LocalId.getNextId = function () {
+            return (++LocalId.nextId);
+        };
+        LocalId.nextId = 0;
+        return LocalId;
+    }());
+    CanvasDiagram.LocalId = LocalId;
     var Logger = (function () {
         function Logger() {
         }
@@ -158,6 +231,7 @@ var CanvasDiagram;
         function ElementBase() {
             this.tag = null;
             this.guid = CanvasDiagram.Random.guid();
+            this.localId = CanvasDiagram.LocalId.getNextId();
             this.rect = new CanvasDiagram.Rect(10, 10, 162, 62);
             this.background = '#A1E7FF';
             this.hoverBackground = '#00B2F0';
@@ -170,6 +244,7 @@ var CanvasDiagram;
             this.isHoverConnectEnd = false;
             this.zIndex = 0;
             this.hasConnectionPoints = true;
+            this.isConnectionInProgress = false;
             this._eventSubscribers = new Array();
             this._connectRadius = 5;
             this.raiseRectChanged = function () {
@@ -182,6 +257,7 @@ var CanvasDiagram;
             this._canvas = ctx.canvas;
             this._renderingCtx = ctx;
             this._movableBehaviour = new CanvasDiagram.MovableBehaviour(ctx, this);
+            this._connectBehaviour = new CanvasDiagram.ConnectionBehaviour(ctx, this);
         };
         ElementBase.prototype.updateState = function () {
             this.isHover = this._renderingCtx.isHitVisible(this, 4);
@@ -414,6 +490,9 @@ var CanvasDiagram;
             if (byPx == 0)
                 return this;
             return new Rect(this.x - byPx, this.y - byPx, this.w + 2 * byPx, this.h + 2 * byPx);
+        };
+        Rect.prototype.isIntersecting = function (other) {
+            return !(this.x > other.right() || this.right() < other.x || this.y > other.bottom() || this.bottom() < other.y);
         };
         return Rect;
     }());

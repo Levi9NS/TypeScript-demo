@@ -7,6 +7,9 @@ module CanvasDiagram {
         public ctx2d : CanvasRenderingContext2D;
         public background: string = "#E6E6E6";
         public mousePoint: Point = new Point();
+        // this two are used to determine if connection can be made to another element
+        public connectionStartLocalId: number = 0;
+        public connectionEndLocalId: number = 0;
                   
         constructor (public canvas: HTMLCanvasElement) {
             this.ctx2d = canvas.getContext("2d");
@@ -68,7 +71,7 @@ module CanvasDiagram {
             var isHover = false;
             var isConnectHover = false;
             for (let i = 0; i < this._elements.length; i++) {
-                if (this._elements[i].isConnectionHover()) {
+                if (this._elements[i].isConnectionHover() || this._elements[i].isConnectionInProgress) {
                     isConnectHover = true;
                     break;
                 } else if (this._elements[i].isHover) {
@@ -112,6 +115,33 @@ module CanvasDiagram {
             
             elementsWithHit = elementsWithHit.sort(x => x.zIndex);
             return element.zIndex >= elementsWithHit[0].zIndex;
+        }
+        
+        public findFreeSpace(): Point {
+            var testRect = new Rect(10, 10, 200, 100);
+            
+            for (let x = 10; x < this.canvas.width - 200; x += 10) {
+                for (let y = 10; y < this.canvas.height - 100; y += 10) {
+                    testRect.x = x;
+                    testRect.y = y;
+                    if ((this._elements.filter(r => r.rect.extendUniform(10).isIntersecting(testRect))).length == 0) {
+                        return new Point(x, y);
+                    }
+                }
+            }
+            testRect.w = 20;
+            testRect.h = 20;
+            for (let x = 10; x < this.canvas.width; x += 2) {
+                for (let y = 10; y < this.canvas.height; y += 2) {
+                    testRect.x = x;
+                    testRect.y = y;
+                    if ((this._elements.filter(r => r.rect.isIntersecting(testRect))).length == 0) {
+                        return new Point(x, y);
+                    }
+                }
+            }
+            
+            return new Point(15, 15);
         }
     }
 }

@@ -10,6 +10,7 @@ module CanvasDiagram {
         
         public tag: any = null;
         public guid: string = Random.guid();
+        public localId: number = LocalId.getNextId();
         
         public rect: Rect = new Rect(10, 10, 162, 62);
         public background: string = '#A1E7FF';
@@ -23,11 +24,13 @@ module CanvasDiagram {
         public isHoverConnectEnd: boolean = false;
         public zIndex: number = 0;
         public hasConnectionPoints: boolean = true;
+        public isConnectionInProgress: boolean = false;
         
         private _canvas: HTMLCanvasElement;
         private _eventSubscribers = new Array<IEventSubscirberItem>();
         private _renderingCtx: RenderingContext;
         private _movableBehaviour: MovableBehaviour;
+        private _connectBehaviour: ConnectionBehaviour;
         private _connectRadius: number = 5;
         private _connectDiameter: number;
         
@@ -39,6 +42,7 @@ module CanvasDiagram {
             this._canvas = ctx.canvas;
             this._renderingCtx = ctx;
             this._movableBehaviour = new MovableBehaviour(ctx, this);
+            this._connectBehaviour = new ConnectionBehaviour(ctx, this);
         }
         
         public updateState(): void {
