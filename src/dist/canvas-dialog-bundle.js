@@ -74,20 +74,20 @@ var CanvasDiagram;
             var isHover = false;
             var isConnectHover = false;
             for (var i = 0; i < this._elements.length; i++) {
-                if (this._elements[i].isHover) {
-                    isHover = true;
-                    break;
-                }
-                else if (this._elements[i].isConnectionHover()) {
+                if (this._elements[i].isConnectionHover()) {
                     isConnectHover = true;
                     break;
                 }
+                else if (this._elements[i].isHover) {
+                    isHover = true;
+                    break;
+                }
             }
-            if (isHover) {
-                this.canvas.style.cursor = "move";
-            }
-            else if (isConnectHover) {
+            if (isConnectHover) {
                 this.canvas.style.cursor = "pointer";
+            }
+            else if (isHover) {
+                this.canvas.style.cursor = "move";
             }
             else {
                 this.canvas.style.cursor = "default";
@@ -185,13 +185,9 @@ var CanvasDiagram;
         };
         ElementBase.prototype.updateState = function () {
             this.isHover = this._renderingCtx.isHitVisible(this, 4);
-            if (this.isHover) {
-                this.updateConnectionsHover(this._renderingCtx.mousePoint);
-            }
-            else {
-                this.isHoverConnectStart = false;
-                this.isHoverConnectEnd = false;
-            }
+            this.isHoverConnectStart = false;
+            this.isHoverConnectEnd = false;
+            this.updateConnectionsHover(this._renderingCtx.mousePoint);
             if (this.isHoverConnectEnd || this.isHoverConnectEnd) {
                 this.isHover = false;
             }
@@ -225,7 +221,7 @@ var CanvasDiagram;
             if (this.renderRect) {
                 renCtx.ctx2d.beginPath();
                 renCtx.ctx2d.rect(this.rect.x + 0.5, this.rect.y + 0.5, this.rect.w, this.rect.h);
-                if (this.isHover)
+                if (this.isHover && !this.isConnectionHover())
                     renCtx.ctx2d.fillStyle = this.hoverBackground;
                 else
                     renCtx.ctx2d.fillStyle = this.background;

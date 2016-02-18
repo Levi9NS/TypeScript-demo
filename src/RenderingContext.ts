@@ -68,18 +68,18 @@ module CanvasDiagram {
             var isHover = false;
             var isConnectHover = false;
             for (let i = 0; i < this._elements.length; i++) {
-                if (this._elements[i].isHover) {
-                    isHover = true;
-                    break;
-                } else if (this._elements[i].isConnectionHover()) {
+                if (this._elements[i].isConnectionHover()) {
                     isConnectHover = true;
+                    break;
+                } else if (this._elements[i].isHover) {
+                    isHover = true;
                     break;
                 }
             }
-            if (isHover) {
-                this.canvas.style.cursor = "move";
-            } else if (isConnectHover) {
-                this.canvas.style.cursor = "pointer"; 
+            if (isConnectHover) {
+                this.canvas.style.cursor = "pointer";
+            } else if (isHover) {
+                this.canvas.style.cursor = "move"; 
             } else {
                 this.canvas.style.cursor = "default";
             }

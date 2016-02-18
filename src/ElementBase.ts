@@ -43,12 +43,10 @@ module CanvasDiagram {
         
         public updateState(): void {
             this.isHover = this._renderingCtx.isHitVisible(this, 4);
-            if (this.isHover) {
-                this.updateConnectionsHover(this._renderingCtx.mousePoint);
-            } else {
-                this.isHoverConnectStart = false;
-                this.isHoverConnectEnd = false;
-            }
+            this.isHoverConnectStart = false;
+            this.isHoverConnectEnd = false;
+            this.updateConnectionsHover(this._renderingCtx.mousePoint);
+            
             if (this.isHoverConnectEnd || this.isHoverConnectEnd) {
                 this.isHover = false;
             }
@@ -98,7 +96,7 @@ module CanvasDiagram {
             if (this.renderRect) {
                 renCtx.ctx2d.beginPath();
                 renCtx.ctx2d.rect(this.rect.x + 0.5, this.rect.y + 0.5, this.rect.w, this.rect.h);
-                if (this.isHover) renCtx.ctx2d.fillStyle = this.hoverBackground;
+                if (this.isHover && !this.isConnectionHover()) renCtx.ctx2d.fillStyle = this.hoverBackground;
                 else renCtx.ctx2d.fillStyle = this.background;
                 renCtx.ctx2d.fill();
                 renCtx.ctx2d.lineWidth = this.borderWidth;
