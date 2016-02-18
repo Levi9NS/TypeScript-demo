@@ -97,6 +97,7 @@ module CanvasDiagram {
         }
         
         public render (renCtx: RenderingContext) {
+            renCtx.ctx2d.setLineDash([]);
             if (this.renderRect) {
                 renCtx.ctx2d.beginPath();
                 renCtx.ctx2d.rect(this.rect.x + 0.5, this.rect.y + 0.5, this.rect.w, this.rect.h);
@@ -146,6 +147,8 @@ module CanvasDiagram {
             renCtx.ctx2d.arc(x, this.rect.y, this._connectRadius, 0, 2 * Math.PI);
             renCtx.ctx2d.fill();
             renCtx.ctx2d.stroke();
+            
+            this._connectBehaviour.render();
         }
         
         private updateConnectionsHover(mousePoint: Point): void {

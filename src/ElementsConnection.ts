@@ -2,11 +2,15 @@
 
 module CanvasDiagram {
     export class ElementsConnection {
+        public connectionId: number;
+        
         constructor(
           public endElement: ElementBase,
           public startElement: ElementBase   
         )
-        { }
+        { 
+            this.connectionId = endElement.localId * 10000 + startElement.localId;
+        }
         
         public render(renCtx: RenderingContext) {
             var end = new Point(this.endElement.rect.middleX(), this.endElement.rect.bottom());

@@ -52,9 +52,11 @@ module CanvasDiagram {
             return elem;
         }
         
-        public addConnection(elementA: ElementBase, elementB: ElementBase): void {
-            var connection = new ElementsConnection(elementA, elementB);
-            this._connections.push(connection)
+        public addConnection(endElement: ElementBase, startElement: ElementBase): void {
+            var connection = new ElementsConnection(endElement, startElement);
+            if (this._connections.filter(x => x.connectionId == connection.connectionId).length == 0) {
+                this._connections.push(connection);
+            }
         }
         
         public run(fps: number = 24) : void {
@@ -88,7 +90,7 @@ module CanvasDiagram {
             }
         };
         
-        public render = () => {
+        public render() {
             this.ctx2d.clearRect(0, 0, this.canvas.width, this.canvas.height);
             this.ctx2d.fillStyle = this.background;
             this.ctx2d.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -142,6 +144,19 @@ module CanvasDiagram {
             }
             
             return new Point(15, 15);
+        }
+        
+        public getTargetElementUnderMousePoint(targetIsStart: boolean): ElementBase {
+            var element = this._elements.filter(x => this.isHitVisible(x, 4));
+            if (element.length > 0) {
+                if (targetIsStart && element[0].isHoverConnectStart) {
+                    return element[0];
+                } 
+                if (!targetIsStart && element[0].isHoverConnectEnd) {
+                    return element[0];
+                }
+            }
+            return null;
         }
     }
 }

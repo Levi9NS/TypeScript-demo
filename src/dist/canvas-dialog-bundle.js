@@ -15,21 +15,37 @@ var CanvasDiagram;
                 if (_this.elem.isConnectionHover()) {
                     _this._isMouseDown = true;
                     _this.elem.isConnectionInProgress = true;
-                    console.log('connect start');
+                    _this._startPoint = new CanvasDiagram.Point(e.actualPoint().x, e.actualPoint().y);
+                    _this._isStartOnStartPoint = _this.elem.isHoverConnectStart;
                 }
             });
             this.ctx.canvas.addEventListener('mouseup', function (e) {
                 if (_this._isMouseDown) {
                     _this._isMouseDown = false;
                     _this.elem.isConnectionInProgress = false;
-                    console.log('connect stop');
+                    var target = _this.ctx.getTargetElementUnderMousePoint(!_this._isStartOnStartPoint);
+                    if (target) {
+                        var endElement = _this.elem;
+                        var startElement = target;
+                        if (_this._isStartOnStartPoint) {
+                            var endElement = target;
+                            var startElement = _this.elem;
+                        }
+                        _this.ctx.addConnection(endElement, startElement);
+                    }
                 }
             });
-            this.ctx.canvas.addEventListener('mousemove', function (e) {
-                if (_this._isMouseDown) {
-                    console.log('connect move');
-                }
-            });
+        };
+        ConnectionBehaviour.prototype.render = function () {
+            if (this._isMouseDown) {
+                this.ctx.ctx2d.beginPath();
+                this.ctx.ctx2d.moveTo(this._startPoint.x, this._startPoint.y);
+                this.ctx.ctx2d.fillStyle = 'black';
+                this.ctx.ctx2d.setLineDash([5, 5]);
+                this.ctx.ctx2d.lineWidth = 2.5;
+                this.ctx.ctx2d.lineTo(this.ctx.mousePoint.x, this.ctx.mousePoint.y);
+                this.ctx.ctx2d.stroke();
+            }
         };
         return ConnectionBehaviour;
     }());
@@ -57,17 +73,6 @@ var CanvasDiagram;
                 elem.zIndex = _this._maxZ;
                 return elem;
             };
-            this.render = function () {
-                _this.ctx2d.clearRect(0, 0, _this.canvas.width, _this.canvas.height);
-                _this.ctx2d.fillStyle = _this.background;
-                _this.ctx2d.fillRect(0, 0, _this.canvas.width, _this.canvas.height);
-                _this._elements.forEach(function (e) {
-                    e.render(_this);
-                });
-                _this._connections.forEach(function (e) {
-                    e.render(_this);
-                });
-            };
             this.ctx2d = canvas.getContext("2d");
             canvas.addEventListener('mousemove', function (e) {
                 _this.mousePoint = e.actualPoint();
@@ -94,9 +99,11 @@ var CanvasDiagram;
                 e.isHover = e == element;
             });
         };
-        RenderingContext.prototype.addConnection = function (elementA, elementB) {
-            var connection = new CanvasDiagram.ElementsConnection(elementA, elementB);
-            this._connections.push(connection);
+        RenderingContext.prototype.addConnection = function (endElement, startElement) {
+            var connection = new CanvasDiagram.ElementsConnection(endElement, startElement);
+            if (this._connections.filter(function (x) { return x.connectionId == connection.connectionId; }).length == 0) {
+                this._connections.push(connection);
+            }
         };
         RenderingContext.prototype.run = function (fps) {
             var _this = this;
@@ -131,6 +138,19 @@ var CanvasDiagram;
             else {
                 this.canvas.style.cursor = "default";
             }
+        };
+        ;
+        RenderingContext.prototype.render = function () {
+            var _this = this;
+            this.ctx2d.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx2d.fillStyle = this.background;
+            this.ctx2d.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this._elements.forEach(function (e) {
+                e.render(_this);
+            });
+            this._connections.forEach(function (e) {
+                e.render(_this);
+            });
         };
         ;
         RenderingContext.prototype.isHitVisible = function (element, extendByPixels) {
@@ -170,6 +190,19 @@ var CanvasDiagram;
                 }
             }
             return new CanvasDiagram.Point(15, 15);
+        };
+        RenderingContext.prototype.getTargetElementUnderMousePoint = function (targetIsStart) {
+            var _this = this;
+            var element = this._elements.filter(function (x) { return _this.isHitVisible(x, 4); });
+            if (element.length > 0) {
+                if (targetIsStart && element[0].isHoverConnectStart) {
+                    return element[0];
+                }
+                if (!targetIsStart && element[0].isHoverConnectEnd) {
+                    return element[0];
+                }
+            }
+            return null;
         };
         return RenderingContext;
     }());
@@ -294,6 +327,7 @@ var CanvasDiagram;
             });
         };
         ElementBase.prototype.render = function (renCtx) {
+            renCtx.ctx2d.setLineDash([]);
             if (this.renderRect) {
                 renCtx.ctx2d.beginPath();
                 renCtx.ctx2d.rect(this.rect.x + 0.5, this.rect.y + 0.5, this.rect.w, this.rect.h);
@@ -343,6 +377,7 @@ var CanvasDiagram;
             renCtx.ctx2d.arc(x, this.rect.y, this._connectRadius, 0, 2 * Math.PI);
             renCtx.ctx2d.fill();
             renCtx.ctx2d.stroke();
+            this._connectBehaviour.render();
         };
         ElementBase.prototype.updateConnectionsHover = function (mousePoint) {
             var leftX = this.rect.middleX() - this._connectRadius;
@@ -367,6 +402,7 @@ var CanvasDiagram;
         function ElementsConnection(endElement, startElement) {
             this.endElement = endElement;
             this.startElement = startElement;
+            this.connectionId = endElement.localId * 10000 + startElement.localId;
         }
         ElementsConnection.prototype.render = function (renCtx) {
             var end = new CanvasDiagram.Point(this.endElement.rect.middleX(), this.endElement.rect.bottom());
